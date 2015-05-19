@@ -1,4 +1,4 @@
-function localize_PREF()
+function LYON_localize_PREF()
 
 a_todo = 'tall';
 % a_elecdat = '/home/bastinj/MATLAB/tb_grenoble/localizer/elec.dat';
