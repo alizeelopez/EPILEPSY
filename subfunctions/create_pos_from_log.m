@@ -10,10 +10,12 @@ for ii=1:length(a_code)
         m_pos_from_log(i,2)=50;
         m_pos_from_log(i,1)=fix_latency_pcstim(j);
         if ~ismember('N',a_code{ii+2})
+            if ~ismember('N',a_code{ii+1})
             display('Image ID is missing in the log file')
             i=i+1;
             m_pos_from_log(i,2)=51;
             m_pos_from_log(i,1)=cue_latency_pcstim(j);
+            end
         end
     elseif ismember('N',a_code{ii})
         i=i+1;
