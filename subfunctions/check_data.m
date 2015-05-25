@@ -22,4 +22,4 @@ else
     rapport{3,:}=['Number of id response is 120 : everything''s ok'];
     rap(3)=1;
 end
-display(rapport);
+% display(rapport);

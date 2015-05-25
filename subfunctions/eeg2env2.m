@@ -21,6 +21,8 @@ a_eegfile = [a_rootname '.eeg'];
 a_eegfile_orig = a_eegfile;
 f_old=fopen([a_rootname '.eeg.ent'],'r');
 
+a_new_rootname=[a_rootname(1:find(ismember(a_rootname,'\'),1,'last')) 'Preproc' a_rootname(find(ismember(a_rootname,'\'),1,'last'):end)];
+
 for s_i=1:9
     a_line=fgetl(f_old);
 end
@@ -139,7 +141,7 @@ for s_g = 1:(length(v_changroup)-1)
     % INITIALIZE THE EEG FILES
     if (s_g == 1)
         for sm=1:length(v_smoothing_ms)
-            a_eegfile = [a_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm' num2str(v_smoothing_ms(sm)) '.eeg'];
+            a_eegfile = [a_new_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm' num2str(v_smoothing_ms(sm)) '.eeg'];
             eeg2eeg_write_eeg_init(a_eegfile,s_nbsample,s_nbchannel)
         end
         %         a_eegfile = [a_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm250.eeg'];
@@ -206,7 +208,7 @@ for s_g = 1:(length(v_changroup)-1)
         if (~isempty(v_fff))
             m_allsc_s{sm}(v_fff)=0;
         end
-        a_eegfile = [a_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm' num2str(v_smoothing_ms(sm)) '.eeg'];
+        a_eegfile = [a_new_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm' num2str(v_smoothing_ms(sm)) '.eeg'];
         for s_o = 1:length(v_c)
             eeg2eeg_write_eeg_onechannel(m_allsc_s{sm}(:,s_o),a_eegfile,v_c(s_o),s_nbchannel);
         end
@@ -226,7 +228,7 @@ v_c = [length(ss_bipole)+1 length(ss_bipole)+2];
 v_0 = zeros(size(m_allsc_s{1},1),1);
 
 for sm=1:length(v_smoothing_ms)
-    a_eegfile = [a_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm' num2str(v_smoothing_ms(sm)) '.eeg'];
+    a_eegfile = [a_new_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm' num2str(v_smoothing_ms(sm)) '.eeg'];
     for s_o = 1:length(v_c)
         eeg2eeg_write_eeg_onechannel(v_0,a_eegfile,v_c(s_o),s_nbchannel);
     end
@@ -243,7 +245,7 @@ end
 disp('writing data');
 
 for sm=1:length(v_smoothing_ms)
-    a_eegfile = [a_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm' num2str(v_smoothing_ms(sm)) '.eeg'];
+    a_eegfile = [a_new_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm' num2str(v_smoothing_ms(sm)) '.eeg'];
     eeg2eeg_chg_eegent([a_rootname '.eeg.ent'],[a_eegfile '.ent'],ss_bipole,(s_fs/s_downsamp));
 end
 % a_eegfile = [a_rootname '_f' int2str(min(v_freq)) 'f' int2str(max(v_freq)) '_ds' int2str(s_downsamp) '_sm250.eeg'];

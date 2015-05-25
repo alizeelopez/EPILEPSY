@@ -12,7 +12,8 @@ f=fopen(a_newpos,'w');
 for s_i=1:size(m_pos,1)
     s_id=m_pos(s_i,2);
     s_latency=m_pos(s_i,1);
-    fprintf(f,'%d\t%d\t%d\n',s_latency,s_id,0);
+    vals=m_pos(s_i,3:end);
+    fprintf(f,'%d\t%d\t%d\t%d\t%d\n',s_latency,s_id,vals);
 end;
 
 fclose(f);

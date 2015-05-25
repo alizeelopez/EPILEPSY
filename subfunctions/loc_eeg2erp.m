@@ -1,4 +1,4 @@
-function loc_env2plot(a_eegname,a_posname,v_code,a_code,v_window_ms,s_maxsite_per_elec)
+function loc_eeg2erp(a_eegname,a_posname,v_code,a_code,v_window_ms,s_maxsite_per_elec)
 
 % loc_env2bar('D:\data_elan\LT_PENS_TEST\LT_20NOV08_PENS_f50f150_ds8_sm1000.eeg','D:\data_elan\LT_PENS_TEST\lt_20nov08_pens_ds8.pos',[10 20 30 40],strvcat('faible','normal','fort','attente'),[-500 500],14)
 
@@ -30,7 +30,6 @@ s_nbchannel = length(ss_channel);
 
 v_rt=[];
 s_counter=1;
-s_other=1;
 v_neworder=[];
 v_name=[];
 ss_elec = [];
@@ -58,17 +57,17 @@ for s_c=1:(s_nbchannel-2)
     s_id=str2num(a_string(v_num2));
     
     
-    v_find=strmatch(a_rt,v_rt,'exact');   
+    v_find=strmatch(a_rt,v_rt,'exact');
     if (isempty(v_find))
         v_rt=strvcat(v_rt,a_rt); % that's a new electrode
         ss_elec(s_counter).a_rt=a_rt;
         ss_elec(s_counter).v_id=[s_id];
-        ss_elec(s_counter).v_origid=[s_c]; % where was this elec in the original file (in the data)     
+        ss_elec(s_counter).v_origid=[s_c]; % where was this elec in the original file (in the data)
         s_counter=s_counter+1;
     else
         s_count=v_find(1);
         ss_elec(s_count).v_id=[ss_elec(s_count).v_id s_id];
-        ss_elec(s_count).v_origid=[ss_elec(s_count).v_origid s_c]; % where was this elec in the original file (in the data)     
+        ss_elec(s_count).v_origid=[ss_elec(s_count).v_origid s_c]; % where was this elec in the original file (in the data)
     end; % if isempty
 end; % for s_c
 
@@ -87,19 +86,19 @@ m_color = [[0 0 0.6];[0.6 0 0];[0 0.6 0]];
 m_color = repmat(m_color,8,1);
 
 for s_c = 1:length(ss_elec)
-%    for s_c = 1:3
+    %    for s_c = 1:3
     
     a_rt = ss_elec(s_c).a_rt;
-    v_id = ss_elec(s_c).v_id
-    v_origid = ss_elec(s_c).v_origid
+    v_id = ss_elec(s_c).v_id;
+    v_origid = ss_elec(s_c).v_origid;
     
     s_pos = rem(s_c-1,s_nbelectrode_per_figure);
     if (s_pos == 0)
         if (s_figure>0)
             %print(gcf,'-dtiff','-r600',a_tifname);
-            print(gcf,'-djpeg100','-r200',a_tifname);
+            print(gcf,'-djpeg100','-r200',a_tifname_new);
             close(gcf);
-        end;    
+        end;
         
         s_figure = s_figure+1;
         % start a new figure
@@ -112,12 +111,15 @@ for s_c = 1:length(ss_elec)
         set(gcf,'Position',[sr(1) sr(2) sr(3) sr(4)]);
         set(gcf,'PaperOrientation','Portrait');
         a_tifname = [strrep(a_eegname,'.eeg','') '_erp_mono_f' int2str(s_figure) '.jpg'];
+        
+        index_slash=find(ismember(a_tifname,'\'),1,'last');
+        a_tifname_new=[a_tifname(1:index_slash) 'Preproc' a_tifname(index_slash:end)];
     end;
     % as input, I take up to three electrodes, and for each electrode and site
     % along that electrode, I want to plot a certain number of plots. So I need
     % the data for each condition, with a time-axis.
     
-    % 
+    %
     % draw electrode, with 20 sites, equally spaced.
     
     
@@ -131,7 +133,7 @@ for s_c = 1:length(ss_elec)
     s_Le = s_Le_pct/100;
     
     
-    s_width_pct = 23; % axis width . SPECIFIC 
+    s_width_pct = 23; % axis width . SPECIFIC
     s_inter_plot_pct = 2;
     s_empty_pct = 20; %  % of empty space left of left curve
     s_xelec_pct = 10;
@@ -171,7 +173,7 @@ for s_c = 1:length(ss_elec)
         if (~isempty(v_f))
             
             % this site corresponds to id v_f(1) in this elec
-            % which should correspond in the original data to 
+            % which should correspond in the original data to
             s_orig_id = v_origid(v_f(1));
             % then we can extract the data
             m_data = m_bigdata(:,s_orig_id,:);
@@ -186,7 +188,7 @@ for s_c = 1:length(ss_elec)
                     disp(['ATTENTION, PLEASE : NO EVENT WITH TYPE = ' int2str(v_code(s_p)) ]);
                     m_erp(:,s_p) = zeros(size(m_erp,1),1);
                     m_lim(:,s_p) = zeros(size(m_erp,1),1);
-                else    
+                else
                     m_data_se = m_data(:,v_f);
                     %m_data_se = (m_data_se - 1000)/10; % in %
                     v_erp = mean(m_data_se,2);
@@ -251,7 +253,7 @@ for s_c = 1:length(ss_elec)
         if (~isempty(v_f))
             
             % this site corresponds to id v_f(1) in this elec
-            % which should correspond in the original data to 
+            % which should correspond in the original data to
             s_orig_id = v_origid(v_f(1));
             % then we can extract the data
             m_data = m_bigdata(:,s_orig_id,:);
@@ -319,7 +321,9 @@ end;
 
 % to end with, print last figure
 %print(gcf,'-dtiff','-r200',a_tifname);
-print(gcf,'-djpeg100','-r200',a_tifname);
+index_slash=find(ismember(a_tifname,'\'),1,'last');
+a_tifname_new=[a_tifname(1:index_slash) 'Preproc' a_tifname(index_slash:end)];
+print(gcf,'-djpeg100','-r200',a_tifname_new);
 close(gcf);
 
 
@@ -376,17 +380,17 @@ for s_c=1:(s_nbchannel-2)
     s_id=str2num(a_string(v_num2));
     
     
-    v_find=strmatch(a_rt,v_rt,'exact');   
+    v_find=strmatch(a_rt,v_rt,'exact');
     if (isempty(v_find))
         v_rt=strvcat(v_rt,a_rt); % that's a new electrode
         ss_elec(s_counter).a_rt=a_rt;
         ss_elec(s_counter).v_id=[s_id];
-        ss_elec(s_counter).v_origid=[s_c]; % where was this elec in the original file (in the data)     
+        ss_elec(s_counter).v_origid=[s_c]; % where was this elec in the original file (in the data)
         s_counter=s_counter+1;
     else
         s_count=v_find(1);
         ss_elec(s_count).v_id=[ss_elec(s_count).v_id s_id];
-        ss_elec(s_count).v_origid=[ss_elec(s_count).v_origid s_c]; % where was this elec in the original file (in the data)     
+        ss_elec(s_count).v_origid=[ss_elec(s_count).v_origid s_c]; % where was this elec in the original file (in the data)
     end; % if isempty
 end; % for s_c
 
@@ -405,19 +409,19 @@ m_color = [[0 0 0.6];[0.6 0 0];[0 0.6 0]];
 m_color = repmat(m_color,8,1);
 
 for s_c = 1:length(ss_elec)
-%    for s_c = 1:3
+    %    for s_c = 1:3
     
     a_rt = ss_elec(s_c).a_rt;
-    v_id = ss_elec(s_c).v_id
-    v_origid = ss_elec(s_c).v_origid
+    v_id = ss_elec(s_c).v_id;
+    v_origid = ss_elec(s_c).v_origid;
     
     s_pos = rem(s_c-1,s_nbelectrode_per_figure);
     if (s_pos == 0)
         if (s_figure>0)
-            print(gcf,'-dill','-r300',a_tifname2);
-            print(gcf,'-djpeg100','-r200',a_tifname);
+            print(gcf,'-dill','-r300',a_tifname_new2);
+            print(gcf,'-djpeg100','-r200',a_tifname_new2);
             close(gcf);
-        end;    
+        end;
         
         s_figure = s_figure+1;
         % start a new figure
@@ -430,13 +434,17 @@ for s_c = 1:length(ss_elec)
         set(gcf,'Position',[sr(1) sr(2) sr(3) sr(4)]);
         set(gcf,'PaperOrientation','Portrait');
         a_tifname = [strrep(a_eegname,'.eeg','') '_erp_bipo_f' int2str(s_figure) '.jpg'];
-                a_tifname2 = [strrep(a_eegname,'.eeg','') '_erp_bipo_f' int2str(s_figure) '.ai'];
+        a_tifname2 = [strrep(a_eegname,'.eeg','') '_erp_bipo_f' int2str(s_figure) '.ai'];
+        index_slash=find(ismember(a_tifname,'\'),1,'last');
+        a_tifname_new=[a_tifname(1:index_slash) 'Preproc' a_tifname(index_slash:end)];
+        index_slash2=find(ismember(a_tifname2,'\'),1,'last');
+        a_tifname_new2=[a_tifname(1:index_slash2) 'Preproc' a_tifname2(index_slash2:end)];
     end;
     % as input, I take up to three electrodes, and for each electrode and site
     % along that electrode, I want to plot a certain number of plots. So I need
     % the data for each condition, with a time-axis.
     
-    % 
+    %
     % draw electrode, with 20 sites, equally spaced.
     
     
@@ -450,7 +458,7 @@ for s_c = 1:length(ss_elec)
     s_Le = s_Le_pct/100;
     
     
-    s_width_pct = 23; % axis width . SPECIFIC 
+    s_width_pct = 23; % axis width . SPECIFIC
     s_inter_plot_pct = 2;
     s_empty_pct = 20; %  % of empty space left of left curve
     s_xelec_pct = 10;
@@ -490,7 +498,7 @@ for s_c = 1:length(ss_elec)
         if (~isempty(v_f))
             
             % this site corresponds to id v_f(1) in this elec
-            % which should correspond in the original data to 
+            % which should correspond in the original data to
             s_orig_id = v_origid(v_f(1));
             % then we can extract the data
             m_data = m_bigdata(:,s_orig_id,:);
@@ -505,7 +513,7 @@ for s_c = 1:length(ss_elec)
                     disp(['ATTENTION, PLEASE : NO EVENT WITH TYPE = ' int2str(v_code(s_p)) ]);
                     m_erp(:,s_p) = zeros(size(m_erp,1),1);
                     m_lim(:,s_p) = zeros(size(m_erp,1),1);
-                else    
+                else
                     m_data_se = m_data(:,v_f);
                     %m_data_se = (m_data_se - 1000)/10; % in %
                     v_erp = mean(m_data_se,2);
@@ -570,7 +578,7 @@ for s_c = 1:length(ss_elec)
         if (~isempty(v_f))
             
             % this site corresponds to id v_f(1) in this elec
-            % which should correspond in the original data to 
+            % which should correspond in the original data to
             s_orig_id = v_origid(v_f(1));
             % then we can extract the data
             m_data = m_bigdata(:,s_orig_id,:);
@@ -637,8 +645,13 @@ end;
 
 
 % to end with, print last figure
-print(gcf,'-dill','-r300',a_tifname2);
-print(gcf,'-djpeg100','-r200',a_tifname);
+index_slash=find(ismember(a_tifname,'\'),1,'last');
+a_tifname_new=[a_tifname(1:index_slash) 'Preproc' a_tifname(index_slash:end)];
+index_slash2=find(ismember(a_tifname2,'\'),1,'last');
+a_tifname_new2=[a_tifname(1:index_slash2) 'Preproc' a_tifname2(index_slash2:end)];
+
+print(gcf,'-dill','-r300',a_tifname_new2);
+print(gcf,'-djpeg100','-r200',a_tifname_new);
 close(gcf);
 
 
@@ -707,13 +720,13 @@ a_line=fgetl(f_ent);
 
 
 
-% general information 
+% general information
 fff_data_mono.name=['data from Elan, version ' a_version];
 fff_data_mono.exam=a_patient;
 fff_data_mono.history=a_history;
 fff_data_mono.type.name='sample/channel/event';
 
-% general information 
+% general information
 fff_data_bipo.name=['data from Elan, version ' a_version];
 fff_data_bipo.exam=a_patient;
 fff_data_bipo.history=a_history;
@@ -727,7 +740,7 @@ ss_h.unit='ms';
 ss_h.type='sample';
 ss_h.filter=[1 1 1 1];
 
-s_sampling_freq=s_fs; % 
+s_sampling_freq=s_fs; %
 
 ss_h.values(1).value=v_window_sam(1); % this means that the first sample in this file is 400 samples before the event of reference
 ss_h.values(1).authorized=1; % always 1 for samples
@@ -772,7 +785,7 @@ ss_h.values(s_nbchannel).authorized=0;
 fff_data_mono.dim(2)=ss_h;
 
 ss_channel = ss_h;
-[v_neworder, v_neworder_rev, m_bipole]=loc2_montage(ss_channel);
+[~, v_neworder_rev, m_bipole]=loc2_montage(ss_channel);
 m_bipole_origid = v_neworder_rev(m_bipole); % for each bipole, specifies the indice of the big and litle brothers according to indexing in ss_channel and eeg file
 % CAREFUL !!
 v_bigsister = m_bipole(:,1);
@@ -850,7 +863,7 @@ for s_e=1:s_nbevent
         m_bigdata_mono(:,:,1) = m_data';
     else
         m_bigdata_mono(:,:,s_e) = m_data';
-    end;        
+    end;
 end; % for s_e
 fclose(f_in);
 
@@ -867,14 +880,14 @@ for s_e=1:s_nbevent
     m_databig=m_data(v_bigsister_o,:);
     m_datalit = 0*m_databig; % in case there is a 0 as little sister : it means monopolar
     v_f = find(v_litsister_o);
-    m_datalit(v_f,:)=m_data(v_litsister_o(v_f),:); 
+    m_datalit(v_f,:)=m_data(v_litsister_o(v_f),:);
     m_data=m_databig-m_datalit;
     if (s_e == 1)
         m_bigdata_bipo = zeros(size(m_data,2),size(m_data,1),s_nbevent);
         m_bigdata_bipo(:,:,1) = m_data';
     else
         m_bigdata_bipo(:,:,s_e) = m_data';
-    end;        
+    end;
 end; % for s_e
 fclose(f_in);
 

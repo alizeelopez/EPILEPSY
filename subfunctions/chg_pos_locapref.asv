@@ -16,7 +16,7 @@ function chg_pos_locapref(a_oldposfile,a_logfile)
 
 
 %extract INFO from LOGFILE %%%%%%%%%%%%%%%%%%%%
-[a_code v_ttime pref_score stim_id tmp]=extract_LOCA_pref_datafromlogfile(a_logfile);%ALIZEE: here I take events + timings from the .logfile (file from stimulus-presentation PC)
+[a_code, v_ttime, pref_score, ~, tmp]=extract_LOCA_pref_datafromlogfile(a_logfile);%ALIZEE: here I take events + timings from the .logfile (file from stimulus-presentation PC)
 %from the logfile; we can quickly extract the timing of the 120 rating
 %onset = time at which the stimulus is displayed by the presentation PC
 cue_latency_pcstim=v_ttime(tmp);%timing in milliseconds for the PC stim clock
@@ -29,12 +29,14 @@ resp_latency_pcstim=v_ttime(id_resplog);%in milliseconds
 %there is a missing cue in the eeg file...
 cue_rel_time_milliseconds=cue_latency_pcstim-fix_latency_pcstim;%should be around 1.5 second +- 100 ms
 
-cue_rel_time_milliseconds(cue_rel_time_milliseconds>2)=1500;
-warning('two time corrections in log figle')
+if sum((cue_rel_time_milliseconds>2000))
+    cue_rel_time_milliseconds(cue_rel_time_milliseconds>2)=1500;
+warning('two time corrections in log file');
+end
 
 if size(resp_latency_pcstim,1)>120
     %% HERE TO CREATE AN ERROR
-    find(id_fix(2:end)-2~=id_resplog(1:end-2))
+    find(id_fix(3:end)-2~=id_resplog(1:end-5));
 end
 
 resp_rel_time_milliseconds=[fix_latency_pcstim(2:end)-resp_latency_pcstim(1:end-1); mean(fix_latency_pcstim(2:end)-resp_latency_pcstim(1:end-1))];
@@ -49,7 +51,8 @@ m_pos=load(a_oldposfile); %here are events from the brain PC (with missing event
 
 %before everything, We will need the sampling rate of the EEGfile
 % EXTRACT SAMPLING RATE INFO FROM ENT FILE
-a_entfile =strrep(a_oldposfile,'.pos','.eeg.ent');%
+[index_preproc, ind_end]=regexp((a_oldposfile),'\Preproc');
+a_entfile =strrep(a_oldposfile([1:index_preproc-1 (ind_end+1):end]),'.pos','.eeg.ent');%
 f_old=fopen([a_entfile ],'r');
 for s_i=1:9
     a_line=fgetl(f_old);
@@ -74,13 +77,14 @@ resp_latency_eeg=m_pos(id_resp,1);
 %% CHECK FOR TOO MANY TRIALS
 pos_from_log=create_pos_from_log(a_code, v_ttime,fix_latency_pcstim,cue_latency_pcstim);
 
-find((m_pos(2:end,2)==51 & m_pos(1:end-1,2)~=5 & m_pos(1:end-1,2)~=50)) 
+% find((m_pos(2:end,2)==51 & m_pos(1:end-1,2)~=5 & m_pos(1:end-1,2)~=50));
 
 %% RAPPORT DE CORRECTION DU POS FILE
 
-[rapport, rap]=check_data(id_fixpos,id_cue,id_resp);
+[rapport1, rap]=check_data(id_fixpos,id_cue,id_resp);
+disp(rapport1)
 m_pos_corrected=m_pos;
- % Nettoyage d'artefacts
+% Nettoyage d'artefacts
 m_pos_corrected(~ismember(m_pos_corrected(:,2),[50 51 2 4 3 1 5 80 81]),:)=[];
 % m_pos_corrected(find(m_pos_corrected(1:end-1,2)==5 & m_pos_corrected(2:end,2)~=50)+1,:)=[];
 
@@ -93,10 +97,10 @@ m_pos_corrected(find(m_pos_corrected(1:end-2,2)==5 & m_pos_corrected(3:end,2)==5
 
 
 %%
- id_fixpos=find(m_pos_corrected(:,2)==50);%OK: 120 events
-        id_cue=find( m_pos_corrected(:,2)==51);%almost OK (119 events): we could of course use .log data to back-up the missing event;
-        id_resp=find( m_pos_corrected(:,2)==5);
-[rapport, rap]=check_data(id_fixpos,id_cue,id_resp);
+id_fixpos=find(m_pos_corrected(:,2)==50);%OK: 120 events
+id_cue=find( m_pos_corrected(:,2)==51);%almost OK (119 events): we could of course use .log data to back-up the missing event;
+id_resp=find( m_pos_corrected(:,2)==5);
+% [rapport, rap]=check_data(id_fixpos,id_cue,id_resp);
 
 if rap(2)~=1
     %% MISSING CUES
@@ -111,15 +115,15 @@ if rap(2)~=1
             cue_rel_time_milliseconds_tmp=[cue_rel_time_milliseconds(id_trial_no_cue)  cue_rel_time_milliseconds(id_trial_no_cue+1) ];
             %we need that info in EEG samples: use s_fs now
             cue_rel_time_tmp=round(cue_rel_time_milliseconds_tmp/1000*s_fs);
-%             if isempty (find(cue_latency_eeg>fix_latency_tmp(1) & cue_latency_eeg<fix_latency_tmp(2))) %just check there is no cue event between these two fix events
-                cue_onsets=fix_latency_tmp+cue_rel_time_tmp;
-%                 cue_latency_eeg(id_trial_no_cue);
-                new_pos_line=[cue_onsets(:,1) 51*ones(length(cue_onsets(:,1)),1) zeros(length(cue_onsets(:,1)),1)];
-                m_pos_corrected=[m_pos_corrected ;new_pos_line];
-                %now re-order m_pos with respect to timings of column 1
-                [a,b]=sort(m_pos_corrected(:,1));
-                m_pos_corrected=m_pos_corrected(b,:);%done: we now have all events of interest in the posfile :)
-%             end
+            %             if isempty (find(cue_latency_eeg>fix_latency_tmp(1) & cue_latency_eeg<fix_latency_tmp(2))) %just check there is no cue event between these two fix events
+            cue_onsets=fix_latency_tmp+cue_rel_time_tmp;
+            %                 cue_latency_eeg(id_trial_no_cue);
+            new_pos_line=[cue_onsets(:,1) 51*ones(length(cue_onsets(:,1)),1) zeros(length(cue_onsets(:,1)),1)];
+            m_pos_corrected=[m_pos_corrected ;new_pos_line];
+            %now re-order m_pos with respect to timings of column 1
+            [a,b]=sort(m_pos_corrected(:,1));
+            m_pos_corrected=m_pos_corrected(b,:);%done: we now have all events of interest in the posfile :)
+            %             end
         end
         
         id_fixpos=find(m_pos_corrected(:,2)==50);%OK: 120 events
@@ -127,8 +131,8 @@ if rap(2)~=1
         id_resp=find( m_pos_corrected(:,2)==5);
         
     end
-% else
-%     m_pos_corrected=m_pos;
+    % else
+    %     m_pos_corrected=m_pos;
 end
 cue_latency_eeg=m_pos_corrected(id_cue,1);%in samples... we need to get s_fs to convert samples into milliseconds: this info is in the .ent file
 fix_latency_eeg=m_pos_corrected(id_fixpos,1);%
@@ -144,15 +148,15 @@ if rap(1)~=1
             cue_rel_time_milliseconds_tmp=[cue_rel_time_milliseconds(id_trial_no_fix)  cue_rel_time_milliseconds(id_trial_no_fix+1) ];
             %we need that info in EEG samples: use s_fs now
             cue_rel_time_tmp=round(cue_rel_time_milliseconds_tmp/1000*s_fs);
-%             if isempty (find(cue_latency_eeg>cue_latency_tmp(1) & cue_latency_eeg<cue_latency_tmp(2))) %just check there is no cue event between these two fix events
-                fix_onsets=cue_latency_tmp-cue_rel_time_tmp;
-                %             fix_latency_eeg(id_trial_no_fix);
-                new_pos_line=[fix_onsets(:,1) 50*ones(length(fix_onsets(:,1)),1) zeros(length(fix_onsets(:,1)),1)];
-                m_pos_corrected=[m_pos_corrected ;new_pos_line];
-                %now re-order m_pos with respect to timings of column 1
-                [a,b]=sort(m_pos_corrected(:,1));
-                m_pos_corrected=m_pos_corrected(b,:);%done: we now have all events of interest in the posfile :)
-%             end
+            %             if isempty (find(cue_latency_eeg>cue_latency_tmp(1) & cue_latency_eeg<cue_latency_tmp(2))) %just check there is no cue event between these two fix events
+            fix_onsets=cue_latency_tmp-cue_rel_time_tmp;
+            %             fix_latency_eeg(id_trial_no_fix);
+            new_pos_line=[fix_onsets(:,1) 50*ones(length(fix_onsets(:,1)),1) zeros(length(fix_onsets(:,1)),1)];
+            m_pos_corrected=[m_pos_corrected ;new_pos_line];
+            %now re-order m_pos with respect to timings of column 1
+            [a,b]=sort(m_pos_corrected(:,1));
+            m_pos_corrected=m_pos_corrected(b,:);%done: we now have all events of interest in the posfile :)
+            %             end
         end
         
         id_fixpos=find(m_pos_corrected(:,2)==50);%OK: 120 events
@@ -160,8 +164,8 @@ if rap(1)~=1
         id_resp=find( m_pos_corrected(:,2)==5);
     end
     
-% else
-%     m_pos_corrected=m_pos_corrected;
+    % else
+    %     m_pos_corrected=m_pos_corrected;
     
 end
 cue_latency_eeg=m_pos_corrected(id_cue,1);%in samples... we need to get s_fs to convert samples into milliseconds: this info is in the .ent file
@@ -204,18 +208,18 @@ if rap(3)~=1
         id_cue=find( m_pos_corrected(:,2)==51);%almost OK (119 events): we could of course use .log data to back-up the missing event;
         id_resp=find( m_pos_corrected(:,2)==5);
     else
-            m_pos_corrected=[m_pos_corrected zeros(size(m_pos_corrected,1),1)];
-
+        m_pos_corrected=[m_pos_corrected zeros(size(m_pos_corrected,1),1)];
+        
     end
-% else
-%     m_pos_corrected=m_pos;   
+    % else
+    %     m_pos_corrected=m_pos;
     m_pos_corrected=[m_pos_corrected zeros(size(m_pos_corrected,1),1)];
     % MARK INFERED RESPONSE TIME
-%  m_pos_corrected(m_pos_corrected(:,4)==1000,1)=NaN(1,sum(m_pos_corrected(:,4)==1000));
-
+    %  m_pos_corrected(m_pos_corrected(:,4)==1000,1)=NaN(1,sum(m_pos_corrected(:,4)==1000));
+    
 end
 
-%% 
+%%
 
 
 %% CHECK IF LAST ANSWER IS MISSING OR NOT
@@ -230,16 +234,17 @@ if ~ismember(5,m_pos_corrected(find(m_pos_corrected(:,2)==50,1,'last'):find(m_po
 end
 
 
- % Nettoyage d'artefacts
+% Nettoyage d'artefacts
 % m_pos_corrected(~ismember(m_pos_corrected(:,2),[50 51 2 4 3 1 5 80 81]),:)=[];
 % m_pos_corrected(find(m_pos_corrected(1:end-1,2)==5 & m_pos_corrected(2:end,2)~=50)+1,:)=[];
-% 
+%
 %%
- 
-        id_fixpos=find(m_pos_corrected(:,2)==50);%OK: 120 events
-        id_cue=find(m_pos_corrected(:,2)==51);%almost OK (119 events): we could of course use .log data to back-up the missing event;
-        id_resp=find(m_pos_corrected(:,2)==5);
-[rapport, rap]=check_data(id_fixpos,id_cue,id_resp);
+
+id_fixpos=find(m_pos_corrected(:,2)==50);%OK: 120 events
+id_cue=find(m_pos_corrected(:,2)==51);%almost OK (119 events): we could of course use .log data to back-up the missing event;
+id_resp=find(m_pos_corrected(:,2)==5);
+[rapport2, rap]=check_data(id_fixpos,id_cue,id_resp);
+disp(rapport2)
 
 
 %% CONTROL FOR CORRESPONDANCE BETWEEN POS AND LOG files (reaction times)
@@ -253,7 +258,7 @@ m_pos_corrected(find(m_pos_corrected(:,2)==index_base),5)=1:120;
 trial=1;
 for i=2:length(m_pos_corrected)
     if m_pos_corrected(i,5)~=trial+1
-    m_pos_corrected(i-1,5)=trial;
+        m_pos_corrected(i-1,5)=trial;
     else
         m_pos_corrected(i-1,5)=trial;
         trial=trial+1;
@@ -265,10 +270,12 @@ end
 for trial=1:119
     RT_pos(trial)=(m_pos_corrected(find(m_pos_corrected(:,5)==trial+1,1,'first'),1)-m_pos_corrected(find(m_pos_corrected(:,5)==trial,1,'first'),1))/s_fs;
     RT_log(trial)=(pos_from_log(find(pos_from_log(:,6)==trial+1,1,'first'),1)-pos_from_log(find(pos_from_log(:,6)==trial,1,'first'),1))/1000;
-    
 end
+RT_pos(120)=(m_pos_corrected(find(m_pos_corrected(:,2)==5,1,'last'),1)-m_pos_corrected(find(m_pos_corrected(:,2)==50,1,'last'),1))/s_fs;
+RT_log(120)=(pos_from_log(find(pos_from_log(:,2)==5,1,'last'),1)-pos_from_log(find(pos_from_log(:,2)==50,1,'last'),1))/1000;
+
 % figure;scatter(RT_log(1:119),RT_pos(1:119))
-[betas stat]=robustfit(RT_log(1:119),RT_pos(1:119));
+[betas stat]=robustfit(RT_log(1:120),RT_pos(1:120));
 if round(betas(2))==1 && round(betas(1))==0 && stat.p(1)>0.05
     outliers=find(abs(round(RT_pos*10)-round(RT_log*10))>2);
     display([num2str(length(outliers)) ' outliers, removed from pos file'])
@@ -276,15 +283,18 @@ else
     weird=1;
     figure;scatter(RT_log(1:119),RT_pos(1:119))
     % Identifity outliers
-%     trials_ok=find(abs(round(RT_pos*10)-round(RT_log*10))<2);
-%     figure;scatter(RT_log(trials_ok),RT_pos(trials_ok))
-%     outliers=find(abs(round(RT_pos*10)-round(RT_log*10))>2);
-bar([RT_log(outliers) ; RT_pos(outliers)]')
-error('Timing is unreliable between pos and log, careful with this subject, consider correct the pos file manually')
+    %     trials_ok=find(abs(round(RT_pos*10)-round(RT_log*10))<2);
+    %     figure;scatter(RT_log(trials_ok),RT_pos(trials_ok))
+    %     outliers=find(abs(round(RT_pos*10)-round(RT_log*10))>2);
+    bar([RT_log(outliers) ; RT_pos(outliers)]')
+    error('Timing is unreliable between pos and log, careful with this subject, consider correct the pos file manually')
 end
 
-m_pos_corrected(ismember(m_pos_corrected(:,5),outliers)
-
+m_pos_corrected(ismember(m_pos_corrected(:,5),outliers),:)=[];
+trials_included=~ismember(1:120,outliers);
+pref_score=pref_score(trials_included);
+RT_pos=RT_pos(trials_included);
+id_cue=find(m_pos_corrected(:,2)==51);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %ALIZEE, on peut surement super améliorer le code très grandement ICI (en "réparant" le
 %fichier .pos grâce au fichier .log" au lieu de simplement virer les
@@ -305,37 +315,38 @@ m_pos_tmp=m_pos(id_cue,:);
 m_pos_tmp(:,3)=pref_score'; %Ok this is one of the regressor we need... BUT NOT THE ONLY ONE !!
 m_pos_tmp=[ m_pos_tmp pref_score'.^2]; %en colonne 4: la valeur au carré comem régresseur pour la confiance
 %il ne manque plus que le TR:
-for i=1:length(id_cue)
-    resp=[];
-    if i~=length(id_cue)
-        resp=find(m_pos_corrected(id_cue(i):id_cue(i+1),2)==5);
-    else
-        if i==length(id_cue)
-            resp=find(m_pos_corrected(id_cue(i):end,2)==5);
-        end
-    end
-    
-    if isempty(resp)
-        %a possibility is that instead of event 5  you actually get a
-        %prefscore measure (I had to add +10 to the actual prefscore so
-        %that pref_socre =0 corresponds to event code 11
-        if i~=length(id_cue)
-            resp=find(m_pos_corrected(id_cue(i):id_cue(i+1),2)==50)-1;
-        else
-            resp=find(m_pos_corrected(id_cue(i):end,2)==50)-1;
-        end
-    end
-    
-    if m_pos_corrected(id_cue(i),2)==m_pos_corrected(id_cue(i)+1,2) %% One trial is missing
-        resp_lat=NaN;
-        RT(i)=NaN; %TR en sample = OK comme régresseur 3
-    else
-        resp_lat=m_pos_corrected(id_cue(i)-1+resp(1),1);
-        RT(i)=resp_lat-m_pos_corrected(id_cue(i),1); %TR en sample = OK comme régresseur 3
-    end
-end
+% for i=1:length(id_cue)
+%     resp=[];
+%     if i~=length(id_cue)
+%         resp=find(m_pos_corrected(id_cue(i):id_cue(i+1),2)==5);
+%     else
+%         if i==length(id_cue)
+%             resp=find(m_pos_corrected(id_cue(i):end,2)==5);
+%         end
+%     end
+%
+%     if isempty(resp)
+%         %a possibility is that instead of event 5  you actually get a
+%         %prefscore measure (I had to add +10 to the actual prefscore so
+%         %that pref_socre =0 corresponds to event code 11
+%         if i~=length(id_cue)
+%             resp=find(m_pos_corrected(id_cue(i):id_cue(i+1),2)==50)-1;
+%         else
+%             resp=find(m_pos_corrected(id_cue(i):end,2)==50)-1;
+%         end
+%     end
+%
+%     if m_pos_corrected(id_cue(i),2)==m_pos_corrected(id_cue(i)+1,2) %% One trial is missing
+%         resp_lat=NaN;
+%         RT(i)=NaN; %TR en sample = OK comme régresseur 3
+%     else
+%         resp_lat=m_pos_corrected(id_cue(i)-1+resp(1),1);
+%         RT(i)=resp_lat-m_pos_corrected(id_cue(i),1); %TR en sample = OK comme régresseur 3
+%     end
+% end
 
-RT=RT./s_fs;
+% RT=RT./s_fs;
+RT=RT_pos;
 m_pos_tmp=[ m_pos_tmp RT']; %en colonne 5: la TR comme régresseur 3
 
 
